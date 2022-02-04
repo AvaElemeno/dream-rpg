@@ -18,14 +18,11 @@ var MainMenuScene = new Phaser.Class({
         console.info(this.registry.list);
 
         // Sounds Declaration
-        // this.move = new Audio(); //Variable of Audio kind to store and use move sound.
-        // this.move.src ="./assets/sounds/FF7CursorMove.mp3";
-
         this.move = this.registry.get('sounds').FF7CursorMove;
 
         // Add Cursor
         this.cursor = this.scene.scene.add.sprite(215, 18, "cursor");
-        this.cursor.depth = 9999;
+        this.cursor.depth = 999;
         this.cursor.setScale(.3);
 
         // Change the background to blue
@@ -49,6 +46,11 @@ var MainMenuScene = new Phaser.Class({
 
         // Listen for keyboard events
         this.input.keyboard.on("keydown", this.onKeyInput, this);
+
+        // Setup Sub Menu
+        this.subMenu = new subMenu(this, this.events);
+        this.add.existing(this.subMenu);
+        this.subMenu.depth = 1000;
 
         // Handle basic navigation
         this.currentSelection = 0;
@@ -80,13 +82,17 @@ var MainMenuScene = new Phaser.Class({
         this.cursor.y = item.y + 8;
     },
 
-    // Placeholder callback function for menu items
-    placeholderCallback: function() {
-        console.log("got here");
+    // Template callback function for menu items
+    placeholderCallback: function(scene, item) {
+        //console.info(scene);
+        scene.events.emit("subMenu", item.text);        
     },
 
     // Handle Key events
     onKeyInput: function(event) {
+
+        // Simple
+        var mainMenuFocused = !this.scene.scene.subMenu.visible;
 
         // Enter Exits Menu
         if (event.code === "Enter") {
@@ -94,22 +100,28 @@ var MainMenuScene = new Phaser.Class({
             this.scene.switch('WorldScene');
         }
 
-        // Menu Navigation    
-        else if (event.code === "ArrowDown" ||
-                 event.code === "KeyS") {
+        // Menu Navigation
+        else if ((event.code === "ArrowDown" ||
+                  event.code === "KeyS") && mainMenuFocused) {
             let loc = this.mainMenu.moveSelectionDown();
             this.moveCursor(loc);
             this.move.play();
         }
-        else if (event.code === "ArrowUp" ||
-                 event.code === "KeyW") {
+        else if ((event.code === "ArrowUp" ||
+                  event.code === "KeyW") && mainMenuFocused) {
             let loc = this.mainMenu.moveSelectionUp();
             this.moveCursor(loc);
             this.move.play();
         }
+    
         else if (event.code === "Space") {
-            this.mainMenu.confirm();
-            this.move.play();
+            if (!mainMenuFocused) {
+                this.scene.scene.subMenu.hideSubMenu();
+                this.move.play();
+            } else {
+                this.mainMenu.confirm(this.scene.scene);
+                this.move.play();
+            }
         }
     }
 });
@@ -208,9 +220,9 @@ var Menu = new Phaser.Class({
         this.menuItemIndex = 0;
         this.selected = false;
     },
-    confirm: function() {
+    confirm: function(scene) {
         // run the callback
-        this.menuItems[this.menuItemIndex].item.callback();
+        this.menuItems[this.menuItemIndex].item.callback(scene, this.menuItems[this.menuItemIndex].item);
     },
     // clear menu and remove all menu items
     clear: function() {
@@ -241,5 +253,51 @@ var MainMenu = new Phaser.Class({
             
     function MainMenu(x, y, scene) {
         Menu.call(this, x, y, scene);                    
+    }
+});
+
+// Sub Menu class
+var subMenu = new Phaser.Class({
+    Extends: Phaser.GameObjects.Container,
+    initialize:
+    
+    function subMenu(scene, events) {
+        Phaser.GameObjects.Container.call(this, scene, 0,0);//160, 30);
+        var graphics = this.scene.add.graphics();
+        this.add(graphics);
+        
+        graphics.lineStyle(4, 0xff10f0);
+        graphics.fillStyle(0x220733, 1);
+        graphics.strokeRect(2, 2, 316, 236);
+        graphics.fillRect(2, 2, 316, 236);
+
+        // graphics.lineStyle(1, 0xffffff, 0.8);
+        // graphics.fillStyle(0x031f4c, 0.3);        
+        // graphics.strokeRect(-90, -15, 180, 30);
+        // graphics.fillRect(-90, -15, 180, 30);
+
+
+        this.text = new Phaser.GameObjects.Text(
+            scene, 30, 20, "", { 
+                color: "#ffffff", 
+                align: "center", 
+                fontSize: 13, 
+                wordWrap: { width: 170, useAdvancedWrap: true }
+            });
+        this.add(this.text);
+        this.text.setOrigin(0.5);        
+        events.on("subMenu", this.showSubMenu, this);
+        this.visible = false;
+    },
+    showSubMenu: function(text) {
+        this.text.setText(text);
+        this.visible = true;
+        // if(this.hideEvent)
+        //     this.hideEvent.remove(false);
+        //this.hideEvent = this.scene.time.addEvent({ delay: 2000, callback: this.hideSubMenu, callbackScope: this });
+    },
+    hideSubMenu: function() {
+        this.hideEvent = null;
+        this.visible = false;
     }
 });

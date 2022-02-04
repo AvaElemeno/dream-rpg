@@ -185,10 +185,9 @@ var WorldScene = new Phaser.Class({
 
 // speech / dialog class
 var dialog = new Phaser.Class({
-
     Extends: Phaser.GameObjects.Container,
-
     initialize:
+    
     function dialog(scene, events) {
         Phaser.GameObjects.Container.call(this, scene, 160, 30);
         var graphics = this.scene.add.graphics();
