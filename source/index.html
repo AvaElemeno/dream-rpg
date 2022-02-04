@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Turn Based RPG</title>        
+        <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+        <script src="js/libraries/phaser.min.js"></script>
+        <script src="js/boot.js"></script>                 
+        <script src="js/world.js"></script>       
+        <script src="js/battle.js"></script>
+        <script src="js/menu.js"></script>
+        <script src="js/start.js"></script>
+        <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+        }
+        body { background-color: #181820; }
+        #content {
+            margin-top: 50px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #content > canvas {
+            border-radius: 5px;
+        }
+    </style>
+    </head>
+    <body>
+        <div id="content"></div>
+    </body>
+</html>
