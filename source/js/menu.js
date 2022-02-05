@@ -15,7 +15,7 @@ var MainMenuScene = new Phaser.Class({
     {    
         
         // GLobals
-        console.info(this.registry.list);
+        //console.info(this.registry.list);
 
         // Sounds Declaration
         this.move = this.registry.get('sounds').FF7CursorMove;
@@ -37,24 +37,25 @@ var MainMenuScene = new Phaser.Class({
         this.graphics.fillStyle(0x220733, 1);
 
         // Left Side Menu
-        this.graphics.strokeRect(2, 2, 220, 236);
-        this.graphics.fillRect(2, 2, 220, 236);
+        this.graphics.strokeRect(2, 2, 316, 236);
+        this.graphics.fillRect(2, 2, 316, 236);
 
-        // Right Side MEnu
-        this.graphics.strokeRect(220, 2, 98, 236);
-        this.graphics.fillRect(220, 2, 98, 236);
+        // Right Side Menu
+        this.graphics.strokeRect(220, 2, 98, 130);//236);
+        this.graphics.fillRect(220, 2, 98, 130);//236);
 
         // Listen for keyboard events
         this.input.keyboard.on("keydown", this.onKeyInput, this);
 
         // Setup Sub Menu
-        this.subMenu = new subMenu(this, this.events);
-        this.add.existing(this.subMenu);
-        this.subMenu.depth = 1000;
+        this.subMenuContainer = new SubMenuContainer(this, this.events);
+        this.add.existing(this.subMenuContainer);
+        this.subMenuContainer.depth = 901;
 
         // Handle basic navigation
         this.currentSelection = 0;
-        this.buildMenu();                  
+        this.buildMenu();
+        this.focusedMenu = this.mainMenu;            
     },
 
     // Initialize the Main Menu 
@@ -77,50 +78,71 @@ var MainMenuScene = new Phaser.Class({
     },
 
     // Handle Cursor Positioning
-    moveCursor: function(item) {
+    moveCursor: function(item, offset) {
+        var mult = (!!offset)?offset:0;
         this.cursor.x = item.x - 15;
-        this.cursor.y = item.y + 8;
+        this.cursor.y = item.y + (20 * mult) + 8;
     },
+
 
     // Template callback function for menu items
     placeholderCallback: function(scene, item) {
-        //console.info(scene);
-        scene.events.emit("subMenu", item.text);        
+        scene.events.emit("SubMenuContainer", item.text);        
     },
 
     // Handle Key events
     onKeyInput: function(event) {
 
-        // Simple
-        var mainMenuFocused = !this.scene.scene.subMenu.visible;
+        // Simple check for if we are on Main Menu (right)
+        var mainMenuFocused = !this.scene.scene.subMenuContainer.visible;
 
         // Enter Exits Menu
         if (event.code === "Enter") {
+            
+            // Reset Menu
+            this.scene.scene.subMenuContainer.hideSubMenuContainer();
+            this.mainMenu.select(0);
+            this.cursor.x = 215;
+            this.cursor.y = 18;
+
+            // Do the Switch
+            this.cameras.main.fadeIn(250);
             this.scene.sleep();
             this.scene.switch('WorldScene');
         }
 
         // Menu Navigation
-        else if ((event.code === "ArrowDown" ||
-                  event.code === "KeyS") && mainMenuFocused) {
-            let loc = this.mainMenu.moveSelectionDown();
+        else if (event.code === "ArrowDown" ||
+                 event.code === "KeyS") {
+            let loc = this.focusedMenu.moveSelectionDown();
             this.moveCursor(loc);
             this.move.play();
         }
-        else if ((event.code === "ArrowUp" ||
-                  event.code === "KeyW") && mainMenuFocused) {
-            let loc = this.mainMenu.moveSelectionUp();
+        else if (event.code === "ArrowUp" ||
+                 event.code === "KeyW") {
+            let loc = this.focusedMenu.moveSelectionUp();
             this.moveCursor(loc);
             this.move.play();
         }
     
+        // Confirm (when in menu)
         else if (event.code === "Space") {
+
+            // Hide Sub Menu
             if (!mainMenuFocused) {
-                this.scene.scene.subMenu.hideSubMenu();
+                this.cameras.main.fadeIn(250);
+                this.focusedMenu = this.mainMenu;
+                this.scene.scene.subMenuContainer.hideSubMenuContainer();
                 this.move.play();
+                this.moveCursor(this.focusedMenu, this.focusedMenu.menuItemIndex);
+
+            // Open Sub Menu    
             } else {
+                this.focusedMenu = this.subMenuContainer.subMenu;
+                this.cameras.main.fadeIn(250);
                 this.mainMenu.confirm(this.scene.scene);
                 this.move.play();
+                this.moveCursor(this.focusedMenu, this.focusedMenu.menuItemIndex);
             }
         }
     }
@@ -153,8 +175,14 @@ var MenuItem = new Phaser.Class({
     
     deselect: function() {
         this.text.setColor("#ffffff");
+    },
+
+    visibility: function(visible) {
+        this.text.visible = visible;
+    },
+    assignDepth: function(d) {
+        this.text.depth = d;
     }
-    
 });
 
 
@@ -242,6 +270,17 @@ var Menu = new Phaser.Class({
                    
         }
         this.menuItemIndex = 0;
+    },
+    // Helpful for visibility toggling
+    visibility: function(val) {
+        for(var i = 0; i < this.menuItems.length; i++) {
+            this.menuItems[i].visibility(val);
+        }
+    },
+    assignDepth: function(val){
+        for(var i = 0; i < this.menuItems.length; i++) {
+            this.menuItems[i].assignDepth(val);
+        }
     }
 });
 
@@ -256,13 +295,23 @@ var MainMenu = new Phaser.Class({
     }
 });
 
+// Class to handle submenu
+var SubMenu = new Phaser.Class({
+    Extends: Menu,
+    initialize:
+            
+    function SubMenu(x, y, scene) {
+        Menu.call(this, x, y, scene);                    
+    }
+});
+
 // Sub Menu class
-var subMenu = new Phaser.Class({
+var SubMenuContainer = new Phaser.Class({
     Extends: Phaser.GameObjects.Container,
     initialize:
     
-    function subMenu(scene, events) {
-        Phaser.GameObjects.Container.call(this, scene, 0,0);//160, 30);
+    function SubMenuContainer(scene, events) {
+        Phaser.GameObjects.Container.call(this, scene, 0,0);
         var graphics = this.scene.add.graphics();
         this.add(graphics);
         
@@ -271,33 +320,31 @@ var subMenu = new Phaser.Class({
         graphics.strokeRect(2, 2, 316, 236);
         graphics.fillRect(2, 2, 316, 236);
 
-        // graphics.lineStyle(1, 0xffffff, 0.8);
-        // graphics.fillStyle(0x031f4c, 0.3);        
-        // graphics.strokeRect(-90, -15, 180, 30);
-        // graphics.fillRect(-90, -15, 180, 30);
+        // Setup a sub menu
+        this.subMenuItems = [
+            { text:"Med Pack (S)",   callback:null },
+            { text:"Med Pack (M)",   callback:null },
+            { text:"Med Pack (L)",   callback:null }
+        ];
 
-
-        this.text = new Phaser.GameObjects.Text(
-            scene, 30, 20, "", { 
-                color: "#ffffff", 
-                align: "center", 
-                fontSize: 13, 
-                wordWrap: { width: 170, useAdvancedWrap: true }
-            });
-        this.add(this.text);
-        this.text.setOrigin(0.5);        
-        events.on("subMenu", this.showSubMenu, this);
+        // Call the SubMenu Class
+        this.subMenu = new SubMenu(20, 10, this.scene);
+        this.subMenu.remap(this.subMenuItems);
+        this.subMenu.select(0);
+        this.subMenu.depth = 902;
+        
+        // Add a call event
+        events.on("SubMenuContainer", this.showSubMenuContainer, this);
+        this.subMenu.visibility(false);
+        this.subMenu.assignDepth(902);
         this.visible = false;
     },
-    showSubMenu: function(text) {
-        this.text.setText(text);
+    showSubMenuContainer: function(text) {
+        this.subMenu.visibility(true);
         this.visible = true;
-        // if(this.hideEvent)
-        //     this.hideEvent.remove(false);
-        //this.hideEvent = this.scene.time.addEvent({ delay: 2000, callback: this.hideSubMenu, callbackScope: this });
     },
-    hideSubMenu: function() {
-        this.hideEvent = null;
+    hideSubMenuContainer: function() {
+        this.subMenu.visibility(false);
         this.visible = false;
     }
 });
