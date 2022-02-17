@@ -36,14 +36,10 @@ var MainMenuScene = new Phaser.Class({
         this.graphics.lineStyle(4, 0xff10f0);
         this.graphics.fillStyle(0x220733, 1);
 
-        // Left Side Menu
+        // Menu BG
         this.graphics.strokeRect(2, 2, 316, 236);
         this.graphics.fillRect(2, 2, 316, 236);
-
-        // Right Side Menu
-        this.graphics.strokeRect(220, 2, 98, 130);//236);
-        this.graphics.fillRect(220, 2, 98, 130);//236);
-
+        
         // Listen for keyboard events
         this.input.keyboard.on("keydown", this.onKeyInput, this);
 
@@ -61,7 +57,6 @@ var MainMenuScene = new Phaser.Class({
     // Initialize the Main Menu 
     // (Right side only for now)
     buildMenu: function() {
-
         this.mainMenuItems = [
             { text:"Items",     callback:this.placeholderCallback },
             { text:"Equpment",  callback:this.placeholderCallback },
@@ -72,7 +67,7 @@ var MainMenuScene = new Phaser.Class({
         ];
 
         // Call the Menu Class
-        this.mainMenu = new MainMenu(230, 10, this);
+        this.mainMenu = new SubMenu(230, 10, 100, 130, 10, 10, this, 1, undefined, "options");
         this.mainMenu.remap(this.mainMenuItems);
         this.mainMenu.select(0);
     },
@@ -83,7 +78,6 @@ var MainMenuScene = new Phaser.Class({
         this.cursor.x = item.x - 15;
         this.cursor.y = item.y + (20 * mult) + 8;
     },
-
 
     // Template callback function for menu items
     placeholderCallback: function(scene, item) {
@@ -191,13 +185,19 @@ var Menu = new Phaser.Class({
     Extends: Phaser.GameObjects.Container,
     initialize:
             
-    function Menu(x, y, scene, items) {
+    function Menu(x, y, w, h, scene, depth, options) {
+
+        // Initial Declarations
         Phaser.GameObjects.Container.call(this, scene, x, y);
+        this.options = options;
+        this.width = w;
+        this.height = h;
         this.menuItems = [];
         this.menuItemIndex = 0;
         this.x = x;
         this.y = y;        
         this.selected = false;
+
     },     
     addMenuItem: function(item) {
         var menuItem = new MenuItem(this.x, this.y + this.menuItems.length * 20, item, this.scene);
@@ -284,24 +284,53 @@ var Menu = new Phaser.Class({
     }
 });
 
-// Class that handles Right Side Menu
-// (It will matter when submenus and Left side exists)
+// Class that handles Main Menu
+// !! THIS IS CURRENTLY NOT USED
 var MainMenu = new Phaser.Class({
     Extends: Menu,
     initialize:
             
-    function MainMenu(x, y, scene) {
-        Menu.call(this, x, y, scene);                    
+    function MainMenu(x, y, w, h, x_padding, y_padding, scene, depth, parent, options) {
+        Menu.call(this, x, y, w, h, scene, depth, options);                    
     }
 });
 
-// Class to handle submenu
+// Class to handle Sub Menus
 var SubMenu = new Phaser.Class({
     Extends: Menu,
     initialize:
             
-    function SubMenu(x, y, scene) {
-        Menu.call(this, x, y, scene);                    
+    function SubMenu(x, y, w, h, x_padding, y_padding, scene, depth, parent, options) {
+        
+        // BG setup
+        var graphics = scene.add.graphics();
+        var lineWidth = 2;
+        if (!!parent) { parent.add(graphics); }
+        
+        // Menu BG
+        this.x = x;
+        this.y = y;
+        this.width = w;
+        this.height = h;
+        this.x_padding = x_padding;
+        this.y_padding = y_padding;
+
+        graphics.lineStyle(4, 0xff10f0);
+        graphics.fillStyle(0x220733, 1);
+        graphics.strokeRect(
+            ((this.x + lineWidth) - this.x_padding), 
+            ((this.y + lineWidth) - this.y_padding), 
+            (this.width - (lineWidth * 2)),
+            (this.height - (lineWidth * 2))
+        );
+        graphics.fillRect(
+            ((this.x + lineWidth) - this.x_padding), 
+            ((this.y + lineWidth) - this.y_padding), 
+            (this.width - (lineWidth * 2)),
+            (this.height - (lineWidth * 2))
+        );
+
+        Menu.call(this, x, y, w, h, scene, depth, options);                    
     }
 });
 
@@ -315,12 +344,8 @@ var SubMenuContainer = new Phaser.Class({
         var graphics = this.scene.add.graphics();
         this.add(graphics);
         
-        graphics.lineStyle(4, 0xff10f0);
-        graphics.fillStyle(0x220733, 1);
-        graphics.strokeRect(2, 2, 316, 236);
-        graphics.fillRect(2, 2, 316, 236);
-
         // Setup a sub menu
+        // !! this is sample data, should pull from global inventory
         this.subMenuItems = [
             { text:"Med Pack (S)",   callback:null },
             { text:"Med Pack (M)",   callback:null },
@@ -328,7 +353,7 @@ var SubMenuContainer = new Phaser.Class({
         ];
 
         // Call the SubMenu Class
-        this.subMenu = new SubMenu(20, 10, this.scene);
+        this.subMenu = new SubMenu(20, 10, 320, 240, 20, 10, this.scene, 902, this, "hello world");
         this.subMenu.remap(this.subMenuItems);
         this.subMenu.select(0);
         this.subMenu.depth = 902;
