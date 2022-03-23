@@ -14,6 +14,9 @@ var WorldScene = new Phaser.Class({
 
     create: function ()
     {
+
+        var encounters = true;
+
         // create the map
         var map = this.make.tilemap({ key: 'map' });
         
@@ -77,7 +80,7 @@ var WorldScene = new Phaser.Class({
         this.cursors = this.input.keyboard.addKeys({
             a: 65, s: 83, d: 68, w: 87, 
             up: 38, down: 40, left: 37, right: 39, 
-            space: 32, shift:  16, enter: 13
+            space: 32, shift: 16, enter: 13, backslash: 220,
         });
         
         // where the enemies will be
@@ -99,6 +102,8 @@ var WorldScene = new Phaser.Class({
 
         // listen for keyboard events
         this.input.keyboard.on("keydown", this.toggleMainMenu, this);
+
+        this.input.keyboard.on("keydown", this.toggleEncounters, this);
     },
     wake: function() {
         this.cursors.left.reset();
@@ -106,7 +111,8 @@ var WorldScene = new Phaser.Class({
         this.cursors.up.reset();
         this.cursors.down.reset();
     },
-    onMeetEnemy: function(player, zone) {        
+    onMeetEnemy: function(player, zone) { 
+        if (this.encounters == true) {
         // we move the zone to some other location
         zone.x = Phaser.Math.RND.between(0, this.physics.world.bounds.width);
         zone.y = Phaser.Math.RND.between(0, this.physics.world.bounds.height);
@@ -117,13 +123,25 @@ var WorldScene = new Phaser.Class({
 
         // start battle 
         this.input.stopPropagation();
-        this.scene.switch('BattleScene');                
+        this.scene.switch('BattleScene');       
+        }
     },
     toggleMainMenu: function(event) {
         if(event.code === "Enter") {
             this.input.stopPropagation();
             this.cameras.main.fadeIn(250);
             this.scene.switch('MainMenuScene');  
+        }
+    },
+    toggleEncounters: function(event) {
+        if(event.code === "Backslash") {
+            if (this.encounters == true) {
+                this.encounters = false;
+                console.log("encounter = false");
+            } else {
+                this.encounters = true;
+                console.log("encounters = true");
+            }
         }
     },
     update: function (time, delta)
