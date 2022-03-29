@@ -61,7 +61,7 @@ var MainMenuScene = new Phaser.Class({
     // Helper Fn: Initialize the Main Menu 
     buildMenu: function() {
         this.mainMenuItems = [
-            { text:"Items",     callback:this.itemsMenuCallback },
+            { text:"Inventory",     callback:this.itemsMenuCallback },
             { text:"Equpment",  callback:this.placeholderCallback },
             { text:"Skills",    callback:this.placeholderCallback },
             { text:"Jobs",      callback:this.placeholderCallback },
@@ -138,11 +138,21 @@ var MainMenuScene = new Phaser.Class({
                  event.code === "KeyS") {
             let loc = this.focusedMenu.moveSelectionDown();
             this.moveCursor(loc);
+
+            // Temp to update Item description box
+            if (!!this.focusedMenu.parent && !!this.focusedMenu.parent.updateDescription) {
+                this.focusedMenu.parent.updateDescription(this.focusedMenu.menuItems[this.focusedMenu.menuItemIndex].item.description);
+            }
         }
         else if (event.code === "ArrowUp" ||
                  event.code === "KeyW") {
             let loc = this.focusedMenu.moveSelectionUp();
             this.moveCursor(loc);
+
+            // Temp to update Item description box
+            if (!!this.focusedMenu.parent && !!this.focusedMenu.parent.updateDescription) {
+                this.focusedMenu.parent.updateDescription(this.focusedMenu.menuItems[this.focusedMenu.menuItemIndex].item.description);
+            }
         }
     
         // Confirm (when in menu)
@@ -207,7 +217,7 @@ var MenuItem = new Phaser.Class({
     Extends: Phaser.GameObjects.Text,
     initialize:
             
-    function MenuItem(x, y, item, scene) {
+    function MenuItem(x, y, item, scene, wordWrap) {
         Phaser.GameObjects.Text.call(
             this, scene, x, y, item.text, 
             { color: "#ffffff", align: "left", fontSize: 15});
@@ -217,7 +227,7 @@ var MenuItem = new Phaser.Class({
             color: "#ffffff", 
             fontSize: 11,
             align: "center",
-            wordWrap: { width: 170, useAdvancedWrap: true }
+            wordWrap: { width: (!!wordWrap)? wordWrap : 170, useAdvancedWrap: true }
         });
         this.item = item;
     },
@@ -228,6 +238,10 @@ var MenuItem = new Phaser.Class({
     
     deselect: function() {
         this.text.setColor("#ffffff");
+    },
+
+    updateEntryText: function(text) {
+        if (!!text) { this.text.setText(text); }
     },
 
     visibility: function(visible) {
@@ -446,18 +460,27 @@ var ItemsMenuContainer = new Phaser.Class({
         Phaser.GameObjects.Container.call(this, scene, 0,0);
         var graphics = this.scene.add.graphics();
         this.add(graphics);
-        
+
         // Sub Memu Data
         this.subMenuItems = [
-            { text:"Med Pack (S)",   callback:null },
-            { text:"Med Pack (M)",   callback:null },
-            { text:"Med Pack (L)",   callback:null }
+            { text:"Med Pack (S)",   callback:null,   description:"Small Medical Pack: Heals 50 HP" },
+            { text:"Med Pack (M)",   callback:null,   description:"Medium Medical Pack: Heals 250 HP" },
+            { text:"Med Pack (L)",   callback:null,   description:"Large Medical Pack: Heals 500 HP" }
         ];
+        
+        // This is a temp solution, until proper header menu is created
+        this.headerText = new MenuItem(10, 10, {text:"Use Item..."}, scene);
+        this.headerText.assignDepth(999);
+
+        // Also a temp solution
+        this.footerText = new MenuItem(10, 217, {text:this.subMenuItems[0].description}, scene, 300);
+        this.footerText.assignDepth(999);
+
 
        // Consolidate the pos (position) options into an object
         let subMenuPos = {
-            x: 20,  y: 10,
-            w: 320, h: 240,
+            x: 20,  y: 10+30,
+            w: 320, h: 240-30-30,
             x_padding: 20,
             y_padding: 10
         };
@@ -471,15 +494,24 @@ var ItemsMenuContainer = new Phaser.Class({
         events.on("ItemsMenuContainer", this.showContainer, this);
 
         // Initial Visibility
+        this.headerText.visibility(false);
+        this.footerText.visibility(false);
         this.subMenu.visibility(false);
         this.subMenu.assignDepth(902);
         this.visible = false;
     },
+    updateDescription: function(description) {
+        this.footerText.updateEntryText(description);
+    },
     showContainer: function(text) {
+        this.headerText.visibility(true)
+        this.footerText.visibility(true);
         this.subMenu.visibility(true);
         this.visible = true;
     },
     hideContainer: function() {
+        this.headerText.visibility(false)
+        this.footerText.visibility(false);
         this.subMenu.visibility(false);
         this.visible = false;
     }
