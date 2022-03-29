@@ -43,13 +43,18 @@ var MainMenuScene = new Phaser.Class({
         // Listen for keyboard events
         this.input.keyboard.on("keydown", this.onKeyInput, this);
 
-        // Setup Sub Menu
+        // Setup Sub Menu (the template sub menu example)
         this.subMenuContainer = new SubMenuContainer(this, this.events);
         this.add.existing(this.subMenuContainer);
         this.subMenuContainer.depth = 901;
 
+         // Setup Items Menu (following above template)
+        this.itemsMenuContainer = new ItemsMenuContainer(this, this.events);
+        this.add.existing(this.itemsMenuContainer);
+        this.itemsMenuContainer.depth = 901;
+
         // Handle basic navigation
-        this.currentSelection = 0;
+        this.currentSelection = 0;  // <-- is this still used?
         this.buildMenu();
         this.focusedMenu = this.mainMenu;            
     },
@@ -58,7 +63,7 @@ var MainMenuScene = new Phaser.Class({
     // (Right side only for now)
     buildMenu: function() {
         this.mainMenuItems = [
-            { text:"Items",     callback:this.placeholderCallback },
+            { text:"Items",     callback:this.itemsMenuCallback },
             { text:"Equpment",  callback:this.placeholderCallback },
             { text:"Skills",    callback:this.placeholderCallback },
             { text:"Jobs",      callback:this.placeholderCallback },
@@ -84,17 +89,26 @@ var MainMenuScene = new Phaser.Class({
         scene.events.emit("SubMenuContainer", item.text);        
     },
 
+    // Callback for opening Items Sub Menu
+    itemsMenuCallback: function(scene, item) {
+        scene.events.emit("ItemsMenuContainer", item.text);        
+    },
+
     // Handle Key events
+    // !! NOTE: Later on, change to switch statement... more efficient
     onKeyInput: function(event) {
 
         // Simple check for if we are on Main Menu (right)
-        var mainMenuFocused = !this.scene.scene.subMenuContainer.visible;
+        var mainMenuFocused = !this.scene.scene.subMenuContainer.visible && 
+            !this.scene.scene.itemsMenuContainer.visible;
 
         // Enter Exits Menu
         if (event.code === "Enter") {
             
             // Reset Menu
+            this.focusedMenu = this.mainMenu;
             this.scene.scene.subMenuContainer.hideSubMenuContainer();
+            this.scene.scene.itemsMenuContainer.hideItemsMenuContainer();
             this.mainMenu.select(0);
             this.cursor.x = 215;
             this.cursor.y = 18;
@@ -122,21 +136,46 @@ var MainMenuScene = new Phaser.Class({
         // Confirm (when in menu)
         else if (event.code === "Space") {
 
-            // Hide Sub Menu
+            // If the Main Menu is focused, open Sub Menu
+            if (mainMenuFocused) {
+
+                // Choose which subMenu to open
+                switch (this.focusedMenu.menuItemIndex) {
+                    case 0: this.focusedMenu = this.itemsMenuContainer.subMenu; break;
+                    case 1: this.focusedMenu = this.subMenuContainer.subMenu; break;
+                    case 2: this.focusedMenu = this.subMenuContainer.subMenu; break;
+                    case 3: this.focusedMenu = this.subMenuContainer.subMenu; break;
+                    case 4: this.focusedMenu = this.subMenuContainer.subMenu; break;
+                    case 5: this.focusedMenu = this.subMenuContainer.subMenu; break;
+                    default: this.focusedMenu = this.subMenuContainer.subMenu;
+                }
+                
+                // Do the Camera and Cursor handling
+                this.cameras.main.fadeIn(250);
+                this.move.play();
+                this.moveCursor(this.focusedMenu, this.focusedMenu.menuItemIndex);
+                this.mainMenu.confirm(this.scene.scene);
+            }
+            // Else we are in a Sub Menu, therefore should execute those callbacks
+            else {
+                //should run the confirm function for current menu
+                console.log("select");
+            }
+        }
+
+        // Return to Main Menu (if in Sub Menu)
+        else if (event.code === "Escape") {
             if (!mainMenuFocused) {
+
+                // Handle Cameras and Cursor
                 this.cameras.main.fadeIn(250);
                 this.focusedMenu = this.mainMenu;
-                this.scene.scene.subMenuContainer.hideSubMenuContainer();
                 this.move.play();
                 this.moveCursor(this.focusedMenu, this.focusedMenu.menuItemIndex);
 
-            // Open Sub Menu    
-            } else {
-                this.focusedMenu = this.subMenuContainer.subMenu;
-                this.cameras.main.fadeIn(250);
-                this.mainMenu.confirm(this.scene.scene);
-                this.move.play();
-                this.moveCursor(this.focusedMenu, this.focusedMenu.menuItemIndex);
+                // Close Current Menu (TODO: break based on which menu is focused)
+                this.scene.scene.subMenuContainer.hideSubMenuContainer();
+                this.scene.scene.itemsMenuContainer.hideItemsMenuContainer();
             }
         }
     }
@@ -284,18 +323,9 @@ var Menu = new Phaser.Class({
     }
 });
 
-// Class that handles Main Menu
-// !! THIS IS CURRENTLY NOT USED
-var MainMenu = new Phaser.Class({
-    Extends: Menu,
-    initialize:
-            
-    function MainMenu(x, y, w, h, x_padding, y_padding, scene, depth, parent, options) {
-        Menu.call(this, x, y, w, h, scene, depth, options);                    
-    }
-});
-
 // Class to handle Sub Menus
+// !! NOTE : This class is confusingly named but is essentially a container
+// for the specific calling of a menu. Maybe should be combined with the menu Class
 var SubMenu = new Phaser.Class({
     Extends: Menu,
     initialize:
@@ -305,6 +335,9 @@ var SubMenu = new Phaser.Class({
         // BG setup
         var graphics = scene.add.graphics();
         var lineWidth = 2;
+
+        // This toggles whether there should be a 
+        // background hiding the previous menu layer
         if (!!parent) { parent.add(graphics); }
         
         // Menu BG
@@ -334,7 +367,9 @@ var SubMenu = new Phaser.Class({
     }
 });
 
-// Sub Menu class
+// Container for anything unique for a specific sub menu
+// This is essentially a template, there should be a container
+// for each subMenu selected from the main menu
 var SubMenuContainer = new Phaser.Class({
     Extends: Phaser.GameObjects.Container,
     initialize:
@@ -347,9 +382,9 @@ var SubMenuContainer = new Phaser.Class({
         // Setup a sub menu
         // !! this is sample data, should pull from global inventory
         this.subMenuItems = [
-            { text:"Med Pack (S)",   callback:null },
-            { text:"Med Pack (M)",   callback:null },
-            { text:"Med Pack (L)",   callback:null }
+            { text:"Example 1",   callback:null },
+            { text:"Example 2",   callback:null },
+            { text:"Example 3",   callback:null }
         ];
 
         // Call the SubMenu Class
@@ -369,6 +404,46 @@ var SubMenuContainer = new Phaser.Class({
         this.visible = true;
     },
     hideSubMenuContainer: function() {
+        this.subMenu.visibility(false);
+        this.visible = false;
+    }
+});
+
+// Container for the Items Menu
+var ItemsMenuContainer = new Phaser.Class({
+    Extends: Phaser.GameObjects.Container,
+    initialize:
+    
+    function ItemsMenuContainer(scene, events) {
+        Phaser.GameObjects.Container.call(this, scene, 0,0);
+        var graphics = this.scene.add.graphics();
+        this.add(graphics);
+        
+        // Setup a sub menu
+        // !! this is sample data, should pull from global inventory
+        this.subMenuItems = [
+            { text:"Med Pack (S)",   callback:null },
+            { text:"Med Pack (M)",   callback:null },
+            { text:"Med Pack (L)",   callback:null }
+        ];
+
+        // Call the SubMenu Class
+        this.subMenu = new SubMenu(20, 10, 320, 240, 20, 10, this.scene, 902, this, "hello world");
+        this.subMenu.remap(this.subMenuItems);
+        this.subMenu.select(0);
+        this.subMenu.depth = 902;
+        
+        // Add a call event
+        events.on("ItemsMenuContainer", this.showItemsMenuContainer, this);
+        this.subMenu.visibility(false);
+        this.subMenu.assignDepth(902);
+        this.visible = false;
+    },
+    showItemsMenuContainer: function(text) {
+        this.subMenu.visibility(true);
+        this.visible = true;
+    },
+    hideItemsMenuContainer: function() {
         this.subMenu.visibility(false);
         this.visible = false;
     }
