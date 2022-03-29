@@ -130,8 +130,8 @@ var WorldScene = new Phaser.Class({
         }
     },
     toggleMainMenu: function(event) {
-        this.move.play();
         if(event.code === "Enter") {
+            this.move.play();
             this.input.stopPropagation();
             this.cameras.main.fadeIn(250);
             this.scene.switch('MainMenuScene');  
