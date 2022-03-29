@@ -17,6 +17,9 @@ var WorldScene = new Phaser.Class({
 
         var encounters = true;
 
+        // pull sounds
+        this.move = this.registry.get('sounds').FF7CursorMove;
+
         // create the map
         var map = this.make.tilemap({ key: 'map' });
         
@@ -127,6 +130,7 @@ var WorldScene = new Phaser.Class({
         }
     },
     toggleMainMenu: function(event) {
+        this.move.play();
         if(event.code === "Enter") {
             this.input.stopPropagation();
             this.cameras.main.fadeIn(250);

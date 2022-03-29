@@ -58,8 +58,7 @@ var MainMenuScene = new Phaser.Class({
         this.focusedMenu = this.mainMenu;            
     },
 
-    // Initialize the Main Menu 
-    // (Right side only for now)
+    // Helper Fn: Initialize the Main Menu 
     buildMenu: function() {
         this.mainMenuItems = [
             { text:"Items",     callback:this.itemsMenuCallback },
@@ -82,25 +81,46 @@ var MainMenuScene = new Phaser.Class({
         this.mainMenu.select(0);
     },
 
-    // Handle Cursor Positioning
+    // Helper Fn:  Handle Cursor Positioning
     moveCursor: function(item, offset) {
+        this.move.play();
         var mult = (!!offset)?offset:0;
         this.cursor.x = item.x - 15;
         this.cursor.y = item.y + (20 * mult) + 8;
     },
 
-    // Template callback function for menu items
+    // Helper Fn:  Reset whole Main Menu
+    resetMainMenu: function() {
+        this.focusedMenu = this.mainMenu;
+        this.scene.scene.subMenuContainer.hideContainer();
+        this.scene.scene.itemsMenuContainer.hideContainer();
+        this.mainMenu.select(0);
+        this.cursor.x = 215;
+        this.cursor.y = 18;
+    },
+
+    // Helper Fn: Exit Main Menu (Switches Scene)
+    exitScene: function() {
+        this.resetMainMenu();
+        this.move.play();
+        this.cameras.main.fadeIn(250);
+        this.scene.sleep();
+        this.scene.switch('WorldScene');
+    },
+
+    // Callback Template Fn: Opens Main Menu Sub Menus
     placeholderCallback: function(scene, item) {
         scene.events.emit("SubMenuContainer", item.text);        
     },
 
-    // Callback for opening Items Sub Menu
+    // Callback Fn: Opens Items Sub Menu
     itemsMenuCallback: function(scene, item) {
         scene.events.emit("ItemsMenuContainer", item.text);        
     },
 
-    // Handle Key events
-    // !! NOTE: Later on, change to switch statement... more efficient
+
+    // KEYPRESS Event Handling
+    // !! NOTE: refactor further to simpify
     onKeyInput: function(event) {
 
         // Simple check for if we are on Main Menu (right)
@@ -109,35 +129,20 @@ var MainMenuScene = new Phaser.Class({
 
         // Enter Exits Menu
         if (event.code === "Enter") {
-            
-            // !! Commented out because Escape Key is more clear
-
-            // // Reset Menu
-            // this.focusedMenu = this.mainMenu;
-            // this.scene.scene.subMenuContainer.hideContainer();
-            // this.scene.scene.itemsMenuContainer.hideContainer();
-            // this.mainMenu.select(0);
-            // this.cursor.x = 215;
-            // this.cursor.y = 18;
-
-            // // Do the Switch
-            // this.cameras.main.fadeIn(250);
-            // this.scene.sleep();
-            // this.scene.switch('WorldScene');
+            this.exitScene();
         }
 
-        // Menu Navigation
+        // Menu Navigation 
+        // !! NOTE: Will need to be more complex, eg. horizontal menus
         else if (event.code === "ArrowDown" ||
                  event.code === "KeyS") {
             let loc = this.focusedMenu.moveSelectionDown();
             this.moveCursor(loc);
-            this.move.play();
         }
         else if (event.code === "ArrowUp" ||
                  event.code === "KeyW") {
             let loc = this.focusedMenu.moveSelectionUp();
             this.moveCursor(loc);
-            this.move.play();
         }
     
         // Confirm (when in menu)
@@ -147,6 +152,7 @@ var MainMenuScene = new Phaser.Class({
             if (mainMenuFocused) {
 
                 // Choose which subMenu to open
+                // !! NOTE: Switch unneccessary, refactor this later
                 switch (this.focusedMenu.menuItemIndex) {
                     case 0: this.focusedMenu = this.itemsMenuContainer.subMenu; break;
                     case 1: this.focusedMenu = this.subMenuContainer.subMenu; break;
@@ -159,7 +165,6 @@ var MainMenuScene = new Phaser.Class({
                 
                 // Do the Camera and Cursor handling
                 this.cameras.main.fadeIn(250);
-                this.move.play();
                 this.moveCursor(this.focusedMenu, this.focusedMenu.menuItemIndex);
                 this.mainMenu.confirm(this.scene.scene);
             }
@@ -175,25 +180,14 @@ var MainMenuScene = new Phaser.Class({
             
             // CLose Main Menu (If no Sub Menu Open)
             if (mainMenuFocused) {
-
-                // Reset Menu
-                this.focusedMenu = this.mainMenu;
-                this.scene.scene.subMenuContainer.hideContainer();
-                this.scene.scene.itemsMenuContainer.hideContainer();
-                this.mainMenu.select(0);
-                this.cursor.x = 215;
-                this.cursor.y = 18;
-
-                // Do the Switch
-                this.move.play();
-                this.cameras.main.fadeIn(250);
-                this.scene.sleep();
-                this.scene.switch('WorldScene');
+                this.exitScene();
 
             // Else Return to Main Menu
             } else {
 
                 // Hide Current Menu
+                // !! NOTE: This check only exists as a failsafe, 
+                // only main menu doesnt have parent
                 if (!!this.focusedMenu.parent.hideContainer) {
                     this.focusedMenu.parent.hideContainer();
                 }
@@ -201,7 +195,6 @@ var MainMenuScene = new Phaser.Class({
                 // Handle Cameras and Cursor
                 this.cameras.main.fadeIn(250);
                 this.focusedMenu = this.mainMenu;
-                this.move.play();
                 this.moveCursor(this.focusedMenu, this.focusedMenu.menuItemIndex);
             }
         }
